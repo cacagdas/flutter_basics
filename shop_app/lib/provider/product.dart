@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 class Product with ChangeNotifier {
   final String id;
@@ -15,10 +18,29 @@ class Product with ChangeNotifier {
     @required this.price,
     @required this.imageUrl,
     this.isFavorite = false
-});
+  });
 
-  void toggleFavoriteStatus() {
+  void _setFavorite(bool value) {
+    isFavorite = value;
+    notifyListeners();
+  }
+
+  Future<void> toggleFavoriteStatus() async {
+    final oldStatus = isFavorite;
+
     isFavorite = !isFavorite;
     notifyListeners();
+
+    final url = 'https://flutter-shop-app-1241f.firebaseio.com/products/$id.json';
+    try {
+      final response = await http.patch(url, body: json.encode({
+        'isFavorite': isFavorite
+      }));
+      if (response.statusCode >= 400) {
+        _setFavorite(oldStatus);
+      }
+    } catch (error) {
+      _setFavorite(oldStatus);
+    }
   }
 }

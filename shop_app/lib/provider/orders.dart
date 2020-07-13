@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shopapp/provider/cart.dart';
+import 'package:http/http.dart' as http;
 
 class Orders with ChangeNotifier {
   List<OrderItem> _orders = [];
@@ -8,14 +11,57 @@ class Orders with ChangeNotifier {
     return [..._orders];
   }
 
-  void addOrder(List<CartItem> cartProducts, double total) {
+  Future<void> fetchOrders() async {
+    const url = 'https://flutter-shop-app-1241f.firebaseio.com/orders.json';
+    final response = await http.get(url);
+    final List<OrderItem> loadedOrders = [];
+    final extractedData = json.decode(response.body) as Map<String, dynamic>;
+    if (extractedData == null)
+      return;
+    extractedData.forEach((orderId, orderData) {
+      loadedOrders.add(OrderItem(
+        id: orderId,
+        amount: orderData['amount'],
+        dateTime: DateTime.parse(orderData['dateTime']),
+        products: (orderData['products'] as List<dynamic>)
+            .map((item) => CartItem(
+                id: item['id'],
+                price: item['price'],
+                quantity: item['quantity'],
+                title: item['title'])
+            )
+            .toList(),
+      ));
+    });
+
+    _orders = loadedOrders;
+    notifyListeners();
+  }
+
+  Future<void> addOrder(List<CartItem> cartProducts, double total) async {
+    const url = 'https://flutter-shop-app-1241f.firebaseio.com/orders.json';
+    final timeStamp = DateTime.now();
+    final response = await http.post(url,
+        body: json.encode({
+          'amount': total,
+          'dateTime': timeStamp.toIso8601String(),
+          'products': cartProducts
+              .map((e) => {
+                    'id': e.id,
+                    'title': e.title,
+                    'quantity': e.quantity,
+                    'price': e.price
+                  })
+              .toList(),
+        }));
+
     _orders.insert(
         0,
         OrderItem(
-            id: DateTime.now().toString(),
+            id: json.decode(response.body)['name'],
             amount: total,
             products: cartProducts,
-            dateTime: DateTime.now()));
+            dateTime: timeStamp));
     notifyListeners();
   }
 }
@@ -28,7 +74,7 @@ class OrderItem {
 
   OrderItem(
       {@required this.id,
-        @required this.amount,
-        @required this.products,
-        @required this.dateTime});
+      @required this.amount,
+      @required this.products,
+      @required this.dateTime});
 }
