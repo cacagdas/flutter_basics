@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shopapp/provider/orders.dart' show Orders;
-import 'package:shopapp/screen/order_item.dart';
+import 'package:shopapp/widget/order_item.dart';
 import 'package:shopapp/widget/app_drawer.dart';
 
 class OrderScreen extends StatelessWidget {
